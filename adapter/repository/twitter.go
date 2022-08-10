@@ -46,28 +46,30 @@ func NewTwitterRepository(conusumerKey, consumerSecret, accessToken, tokenSecret
 
 func (t *TwitterRepository) GetAnalytics(userId string) ([]entity.Tweet, error) {
 	path := fmt.Sprintf("/users/%s/tweets", userId)
-
+	fullUrl := t.restyClient.BaseURL + path
 	queryParams := map[string]string{
 		"max_results":  "100",
 		"tweet.fields": "organic_metrics,conversation_id",
 		"exclude":      "replies",
 	}
 
-	values := &url.Values{}
+	values := url.Values{}
 	for k, v := range queryParams {
 		values.Add(k, v)
 	}
+	req := t.restyClient.R().SetQueryParamsFromValues(values)
 
-	req := t.restyClient.R().SetQueryParamsFromValues(*values)
-	fullUrl := t.restyClient.BaseURL + path
-	t.OAuthClient.SignForm(t.OAuthUserCredentials, "GET", fullUrl, *values)
+	err := t.OAuthClient.SignForm(t.OAuthUserCredentials, "GET", fullUrl, values)
+	if err != nil {
+		return nil, err
+	}
 
-	for k, v := range queryParams {
-		values.Add(k, v)
+	for k := range queryParams {
+		values.Del(k)
 	}
 
 	oauthHeader := ""
-	for k, v := range *values {
+	for k, v := range values {
 		oauthHeader = oauthHeader + fmt.Sprintf("%s=\"%s\",", k, url.QueryEscape(v[0]))
 	}
 	oauthHeader = strings.TrimRight(oauthHeader, ",")
@@ -82,6 +84,7 @@ func (t *TwitterRepository) GetAnalytics(userId string) ([]entity.Tweet, error) 
 			"content": string(resp.Body()),
 		}).Error("failed to retrieve timeline")
 	}
+
 	twitterResponse := TwitterTimelineResponse{}
 	json.Unmarshal(resp.Body(), &twitterResponse)
 
