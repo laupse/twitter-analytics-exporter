@@ -1,8 +1,8 @@
 # Twitter-analytics-exporter
 
-This repository contains a prometheus "exporter" that will collect analytics about a tweets for a user timeline
+This repository contains a prometheus "exporter" that will collect analytics about tweets for a user timeline
 
-Analytics gathered belong to organic metrics from twitter
+Analytics gathered belong to [organic metrics](https://developer.twitter.com/en/docs/twitter-api/metrics) from twitter
 
 # Usage
 
@@ -20,7 +20,7 @@ Usage of ./twitter-analytics-exporter:
       --user-secret-token string   user-specific secret credentials used to authenticate OAuth 1.0a
 pflag: help requested
 ```
-You can also use environments variables by prefixing them by `TAE_` follow by uppercase value and `-` replace by `_`. Ex: `TAE_USER_ID="1477951133402513413"`
+You can also use environment variable by prefixing them by `TAE_` followed by uppercase value and `-` replace by `_`. Ex: `TAE_USER_ID="1477951133402513413"`
 
 `consumer` information are credentials related to you twitter app
 
@@ -35,9 +35,9 @@ Best way to deploy this app is using docker image
 ghcr.io/laupse/twitter-analytics-exporter
 ```
 
-This application is an exporter so it needs to be backed by a 
-* `prometheus` server (or a grafana-agent with long-term storage) in order to scrape the metrics, to store them and make them available by querying 
-* `grafana` to pretty visualization
+This application is an exporter so it needs to be backed by a :
+* `prometheus` server (or a grafana-agent with long-term storage) in order to scrape metrics, store them and make them available by querying 
+* `grafana` in order to visualize
 
 # Limitations
 
