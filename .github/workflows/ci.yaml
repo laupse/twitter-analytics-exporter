@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - "v**"
   pull_request:
     branches:
       - main
@@ -32,7 +33,7 @@ jobs:
       contents: read
     needs: [integration-test]
 
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    if: ${{ github.event_name == 'push' }}
 
     steps:
       - uses: actions/checkout@v3
@@ -46,6 +47,4 @@ jobs:
           context: .
           file: Dockerfile
           push: true
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest,
-            ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:main
+          tags: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ github.ref }}
