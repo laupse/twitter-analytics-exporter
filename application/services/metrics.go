@@ -27,12 +27,12 @@ func NewMetricsService(ar ports.AnalyticsRepository) *MetricsService {
 
 }
 
-func (ms *MetricsService) Collect(userId string) {
+func (ms *MetricsService) Collect(userId string, refreshInterval time.Duration) {
 	for {
 		tweets, err := ms.repo.GetAnalytics(userId)
 		if err != nil {
 			log.Errorf("%s", err)
-			time.Sleep(1 * time.Minute)
+			time.Sleep(refreshInterval)
 			continue
 		}
 		for _, tweet := range tweets {
@@ -50,6 +50,6 @@ func (ms *MetricsService) Collect(userId string) {
 				gauge.Set(metricValue)
 			}
 		}
-		time.Sleep(1 * time.Minute)
+		time.Sleep(refreshInterval)
 	}
 }
