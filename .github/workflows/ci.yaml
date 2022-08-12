@@ -1,10 +1,11 @@
 name: Continuous integration
 
 on:
+  release:
+    types: [published]
   push:
     branches:
       - main
-      - "v**"
   pull_request:
     branches:
       - main
