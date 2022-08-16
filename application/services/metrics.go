@@ -31,7 +31,7 @@ func (ms *MetricsService) Collect(userId string, refreshInterval time.Duration) 
 	for {
 		tweets, err := ms.repo.GetAnalytics(userId)
 		if err != nil {
-			log.Errorf("%s", err)
+			log.Error("Failed to retrieve timeline ", err)
 			time.Sleep(refreshInterval)
 			continue
 		}

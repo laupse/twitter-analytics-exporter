@@ -3,17 +3,15 @@ package repository
 import (
 	"fmt"
 	"net/url"
-	"strings"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/goccy/go-json"
 	"github.com/gomodule/oauth1/oauth"
 	"github.com/laupse/twitter-analytics-exporter/application/entity"
-	log "github.com/sirupsen/logrus"
 )
 
 type TwitterRepository struct {
-	restyClient          *resty.Client
+	RestyClient          *resty.Client
 	OAuthClient          *oauth.Client
 	OAuthUserCredentials *oauth.Credentials
 }
@@ -23,9 +21,14 @@ type TwitterTimelineResponse struct {
 }
 
 func NewTwitterRepository(conusumerKey, consumerSecret, accessToken, tokenSecret string) *TwitterRepository {
-	restyClient := resty.New()
-	restyClient.SetAuthScheme("OAuth")
-	restyClient.SetBaseURL("https://api.twitter.com/2")
+	RestyClient := resty.New()
+	RestyClient.SetAuthScheme("OAuth")
+	RestyClient.SetBaseURL("https://api.twitter.com/2")
+	RestyClient.SetQueryParams(map[string]string{
+		"max_results":  "100",
+		"tweet.fields": "organic_metrics,conversation_id",
+		"exclude":      "replies",
+	})
 
 	oauthClient := &oauth.Client{
 		SignatureMethod: oauth.HMACSHA1,
@@ -34,8 +37,9 @@ func NewTwitterRepository(conusumerKey, consumerSecret, accessToken, tokenSecret
 			Secret: consumerSecret,
 		},
 	}
+
 	return &TwitterRepository{
-		restyClient: restyClient,
+		RestyClient: RestyClient,
 		OAuthClient: oauthClient,
 		OAuthUserCredentials: &oauth.Credentials{
 			Token:  accessToken,
@@ -46,47 +50,29 @@ func NewTwitterRepository(conusumerKey, consumerSecret, accessToken, tokenSecret
 
 func (t *TwitterRepository) GetAnalytics(userId string) ([]entity.Tweet, error) {
 	path := fmt.Sprintf("/users/%s/tweets", userId)
-	fullUrl := t.restyClient.BaseURL + path
-	queryParams := map[string]string{
-		"max_results":  "100",
-		"tweet.fields": "organic_metrics,conversation_id",
-		"exclude":      "replies",
-	}
-
-	values := url.Values{}
-	for k, v := range queryParams {
-		values.Add(k, v)
-	}
-	req := t.restyClient.R().SetQueryParamsFromValues(values)
-
-	err := t.OAuthClient.SignForm(t.OAuthUserCredentials, "GET", fullUrl, values)
+	fullUrl, err := url.Parse(t.RestyClient.BaseURL + path)
 	if err != nil {
 		return nil, err
 	}
 
-	for k := range queryParams {
-		values.Del(k)
+	req := t.RestyClient.R()
+	if err := t.OAuthClient.SetAuthorizationHeader(req.Header, t.OAuthUserCredentials, "GET", fullUrl, t.RestyClient.QueryParam); err != nil {
+		return nil, err
 	}
 
-	oauthHeader := ""
-	for k, v := range values {
-		oauthHeader = oauthHeader + fmt.Sprintf("%s=\"%s\",", k, url.QueryEscape(v[0]))
-	}
-	oauthHeader = strings.TrimRight(oauthHeader, ",")
-
-	resp, err := req.SetAuthToken(oauthHeader).Get(path)
+	resp, err := req.Get(path)
 	if err != nil {
 		return nil, err
 	}
 
 	if resp.StatusCode() != 200 {
-		log.WithFields(log.Fields{
-			"content": string(resp.Body()),
-		}).Error("failed to retrieve timeline")
+		return nil, fmt.Errorf("http code is not 200")
 	}
 
 	twitterResponse := TwitterTimelineResponse{}
-	json.Unmarshal(resp.Body(), &twitterResponse)
+	if err := json.Unmarshal(resp.Body(), &twitterResponse); err != nil {
+		return nil, err
+	}
 
 	return twitterResponse.Data, nil
 }
